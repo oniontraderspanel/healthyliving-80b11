@@ -1,6 +1,9 @@
 {
   "name": "one-click-hugo-cms",
   "version": "1.0.0",
+  "engines": {
+    "node": "20.x"
+  },
   "description": "Hugo template with Decap CMS ",
   "repository": "decaporg/one-click-hugo-cms",
   "main": "index.js",

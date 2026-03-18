@@ -64,10 +64,11 @@ module.exports = {
       prettyPrint: true
     }),
     new CopyWebpackPlugin({
-      patterns: [{
-        from: "./src/fonts/",
-        to: "fonts/",
-      }]
+      patterns: [
+        { from: "./src/fonts/", to: "fonts/" },
+        // 👇 NEW LINE: Copy your config.yml to the admin folder
+        { from: "./site/static/admin/config.yml", to: "admin/config.yml" }
+      ]
     }),
     new HtmlWebpackPlugin({
       filename: "admin/index.html",

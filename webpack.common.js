@@ -66,7 +66,6 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: "./src/fonts/", to: "fonts/" },
-        // 👇 NEW LINE: Copy your config.yml to the admin folder
         { from: "./site/static/admin/config.yml", to: "admin/config.yml" }
       ]
     }),
@@ -74,6 +73,9 @@ module.exports = {
       filename: "admin/index.html",
       template: 'src/cms.html',
       inject: true,
+      publicPath: '/',
+      chunks: ['cms', 'main'],
+      chunksSortMode: 'manual'
     })
   ]
 };

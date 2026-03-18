@@ -8,7 +8,7 @@ blurb:
 intro:
     heading: "What we offer"
     text: "Whether you are looking for nutritional advice, workout guides, or mental health strategies, we provide deep dives into wellness topics. We take research seriously and translate complex studies into practical tips you can use today."
-products:
+features:
     - image: img/illustrations-coffee.svg # You should replace this SVG later with a health icon
       text: "Expert Articles: Deep dives into nutrition, sleep science, disease prevention, and fitness strategies written by professionals."
     - image: /img/illustrations-coffee-gear.svg # Replace with a health icon

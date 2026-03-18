@@ -1,15 +1,18 @@
 {{ define "main" }}
 
-{{ partial "jumbotron" (dict "imageUrl" "/img/blog-index.jpg" "title" "Latest stories") }}
+<!-- Updated Jumbotron with Health Title -->
+{{ partial "jumbotron" (dict "imageUrl" "/img/blog-index.jpg" "title" "Supplement Reviews" "subtitle" "Science-backed recommendations for your health") }}
 
 <div class="mw7 center">
   <ul id="blog-list" class="flex-ns flex-wrap mhn1-ns pa3">
-      {{ range (.Paginator 4).Pages.ByPublishDate.Reverse }}
+      {{ range .Pages.ByDate.Reverse }}
           <li class="w-50-ns ph1-ns flex">
             {{ .Render "li"}}
           </li>
       {{ end }}
   </ul>
+  
+  <!-- Optional: Add pagination if you have many reviews later -->
   {{ partial "pagination" . }}
 </div>
 

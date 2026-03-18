@@ -7,7 +7,7 @@ export async function onRequest(context) {
   // Handle different auth endpoints
   if (path === '/callback') {
     return handleCallback(request, env);
-  } else if (path === '/') {
+  } else if (path === '/' || path === '') {  // Fixed: match both '/' and empty string
     return handleAuth(request, env);
   }
 
@@ -71,12 +71,7 @@ async function handleCallback(request, env) {
       window.opener.postMessage({
         type: 'oauth-callback',
         provider: 'github',
-        token: '${tokenData.access_token}',
-        provider: 'github',
-        user: {
-          name: 'User',
-          login: 'github-user'
-        }
+        token: '${tokenData.access_token}'
       }, '*');
       window.close();
     })();

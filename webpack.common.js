@@ -16,13 +16,7 @@ module.exports = {
     publicPath: "/"
   },
 
-  // 👇 ADDED: Resolve aliases to force single React version
-  resolve: {
-    alias: {
-      'react': path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom')
-    }
-  },
+  // 👇 RESOLVE SECTION REMOVED - No longer needed
 
   module: {
     rules: [

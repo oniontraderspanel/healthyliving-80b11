@@ -1,6 +1,9 @@
 backend:
-  name: git-gateway
+  name: github
+  repo: oniontraderspanel/healthyliving-80b11
   branch: main
+  base_url: https://healthyliving-80b11.pages.dev
+  auth_endpoint: /api/auth
 
 media_folder: "site/static/img"
 public_folder: "img"

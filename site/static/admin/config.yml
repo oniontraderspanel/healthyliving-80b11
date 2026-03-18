@@ -2,24 +2,28 @@ backend:
   name: git-gateway
   branch: main
 
-media_folder: "site/static/img" # Folder where user uploaded files should go
+media_folder: "site/static/img"
 public_folder: "img"
 
-collections: # A list of collections the CMS should be able to edit
-  - name: "post" # Used in routes, ie.: /admin/collections/:slug/edit
-    label: "Post" # Used in the UI, ie.: "New Post"
-    folder: "site/content/post" # The path to the folder where the documents are stored
-    path: "{{slug}}/index" # Each document is inside a folder with the slug name.
-    create: true # Allow users to create new documents in this collection
-    fields: # The fields each document in this collection have
+collections:
+  # --- BLOG POSTS ---
+  - name: "post"
+    label: "Post"
+    folder: "site/content/post"
+    path: "{{slug}}/index"
+    create: true
+    fields:
       - {label: "Title", name: "title", widget: "string"}
       - {label: "Publish Date", name: "date", widget: "datetime"}
       - {label: "Intro Blurb", name: "description", widget: "text"}
       - {label: "Image", name: "image", widget: "image", required: false}
       - {label: "Body", name: "body", widget: "markdown"}
+
+  # --- PAGES (Home, Contact, Products, Values, Supplements) ---
   - name: "pages"
     label: "Pages"
     files:
+      # Home Page
       - file: "site/content/_index.md"
         label: "Home Page"
         name: "home"
@@ -36,9 +40,11 @@ collections: # A list of collections the CMS should be able to edit
           - {label: "Products", name: products, widget: list, fields: [
               {label: "Image", name: "image", widget: "image"},
               {label: "Text", name: "text", widget: "text"}]}
-          - {label: "Values", name: "values", widget: "object", fields: [
+          - {label: "Values", name: "values", widget: "object, fields: [
               {label: "Heading", name: "heading", widget: string},
               {label: "Text", name: "text", widget: "text"}]}
+      
+      # Contact Page
       - file: "site/content/contact/_index.md"
         label: "Contact Page"
         name: "contact"
@@ -56,17 +62,8 @@ collections: # A list of collections the CMS should be able to edit
               - label: Text
                 name: text
                 widget: text
-      - file: "site/content/products/_index.md"
-        label: "Products Page"
-        name: "products"
-        fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Image, name: image, widget: image}
-          - {label: Intro, name: intro, widget: object, fields: [{label: Heading, name: heading, widget: string}, {label: Description, name: description, widget: text}, {label: Blurbs, name: blurbs, widget: list, fields: [{label: Image, name: image, widget: image}, {label: Text, name: text, widget: text}]}]}
-          - {label: Main, name: main, widget: object, fields: [{label: Heading, name: heading, widget: string}, {label: Description, name: description, widget: text}, {label: Image1, name: image1, widget: object, fields: [{label: Image, name: image, widget: image}, {label: Alt, name: alt, widget: string}]}, {label: Image2, name: image2, widget: object, fields: [{label: Image, name: image, widget: image}, {label: Alt, name: alt, widget: string}]}, {label: Image3, name: image3, widget: object, fields: [{label: Image, name: image, widget: image}, {label: Alt, name: alt, widget: string}]}]}
-          - {label: Testimonials, name: testimonials, widget: list, fields: [{label: Quote, name: quote, widget: string}, {label: Author, name: author, widget: string}]}
-          - {label: Full_image, name: full_image, widget: image}
-          - {label: Pricing, name: pricing, widget: object, fields: [{label: Heading, name: heading, widget: string}, {label: Description, name: description, widget: string}, {label: Plans, name: plans, widget: list, fields: [{label: Plan, name: plan, widget: string}, {label: Price, name: price, widget: string}, {label: Description, name: description, widget: string}, {label: Items, name: items, widget: list}]}]}
+
+      # Values Page
       - file: "site/content/values/_index.md"
         label: "Values Page"
         name: "values"
@@ -80,6 +77,40 @@ collections: # A list of collections the CMS should be able to edit
               - {label: Heading, name: heading, widget: string}
               - {label: Text, name: text, widget: text}
               - {label: Image, name: imageUrl, widget: image}
+
+      # --- NEW: Supplements Landing Page ---
+      - file: "site/content/supplements/_index.md"
+        label: "Supplements Landing Page"
+        name: "supplements_home"
+        fields:
+          - {label: "Title", name: "title", widget: "string"}
+          - {label: "Hero Image", name: "image", widget: "image"}
+          - {label: "Intro", name: "intro", widget: "object", fields: [
+              {label: "Heading", name: "heading", widget: "string"},
+              {label: "Description", name: "description", widget: "text"}]}
+          - {label: "Main Section", name: "main", widget: "object", fields: [
+              {label: "Heading", name: "heading", widget: "string"},
+              {label: "Description", name: "description", widget: "text"}]}
+
+  # --- NEW: Supplement Reviews Collection (Dynamic Posts) ---
+  - name: "supplements"
+    label: "Supplement Reviews"
+    folder: "site/content/supplements"
+    path: "{{slug}}/index"
+    create: true
+    fields:
+      - {label: "Product Name", name: "title", widget: "string"}
+      - {label: "Publish Date", name: "date", widget: "datetime"}
+      - {label: "Brand", name: "brand", widget: "string"}
+      - {label: "Category", name: "category", widget: "select", options: ["Vitamins", "Protein", "Omega-3", "Probiotics", "Herbal", "Minerals"]}
+      - {label: "Short Description", name: "description", widget: "text", hint: "One sentence summary for the grid card."}
+      - {label: "Featured Image", name: "image", widget: "image", required: false}
+      - {label: "Rating (1-5)", name: "rating", widget: "number", min: 1, max: 5, step: 0.5}
+      - {label: "Amazon Affiliate Link", name: "affiliate_link", widget: "string", hint: "Paste your full Amazon associate link here"}
+      - {label: "Button Text", name: "btn_text", widget: "string", default: "Check Price on Amazon"}
+      - {label: "Body (Full Review)", name: "body", widget: "markdown"}
+
+  # --- SITE SETTINGS ---
   - name: "site_settings"
     label: "Site Settings"
     files:

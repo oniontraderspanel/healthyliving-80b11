@@ -19,7 +19,7 @@ collections:
       - {label: "Image", name: "image", widget: "image", required: false}
       - {label: "Body", name: "body", widget: "markdown"}
 
-  # --- PAGES (Home, Contact, Products, Values, Supplements) ---
+  # --- PAGES (Home, Contact, Values, Supplements) ---
   - name: "pages"
     label: "Pages"
     files:
@@ -28,57 +28,57 @@ collections:
         label: "Home Page"
         name: "home"
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Subtitle, name: subtitle, widget: string}
-          - {label: Image, name: image, widget: image}
-          - {label: "Blurb", name: blurb, widget: object, fields: [
-              {label: "Heading", name: "heading", widget: string},
+          - {label: "Title", name: "title", widget: "string"}
+          - {label: "Subtitle", name: "subtitle", widget: "string"}
+          - {label: "Image", name: "image", widget: "image"}
+          - {label: "Blurb", name: "blurb", widget: "object", fields: [
+              {label: "Heading", name: "heading", widget: "string"},
               {label: "Text", name: "text", widget: "text"}]}
-          - {label: "Intro", name: intro, widget: object, fields: [
-              {label: "Heading", name: "heading", widget: string},
+          - {label: "Intro", name: "intro", widget: "object", fields: [
+              {label: "Heading", name: "heading", widget: "string"},
               {label: "Text", name: "text", widget: "text"}]}
-          - {label: "Products", name: products, widget: list, fields: [
+          - {label: "Products", name: "products", widget: "list", fields: [
               {label: "Image", name: "image", widget: "image"},
               {label: "Text", name: "text", widget: "text"}]}
-          - {label: "Values", name: "values", widget: "object, fields: [
-              {label: "Heading", name: "heading", widget: string},
+          - {label: "Values", name: "values", widget: "object", fields: [
+              {label: "Heading", name: "heading", widget: "string"},
               {label: "Text", name: "text", widget: "text"}]}
-      
+
       # Contact Page
       - file: "site/content/contact/_index.md"
         label: "Contact Page"
         name: "contact"
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Logo, name: logo, widget: image}
-          - {label: Body, name: body, widget: markdown}
-          - label: Contact Entries
-            name: contact_entries
-            widget: list
+          - {label: "Title", name: "title", widget: "string"}
+          - {label: "Logo", name: "logo", widget: "image"}
+          - {label: "Body", name: "body", widget: "markdown"}
+          - label: "Contact Entries"
+            name: "contact_entries"
+            widget: "list"
             fields:
-              - label: Heading
-                name: heading
-                widget: string
-              - label: Text
-                name: text
-                widget: text
+              - label: "Heading"
+                name: "heading"
+                widget: "string"
+              - label: "Text"
+                name: "text"
+                widget: "text"
 
       # Values Page
       - file: "site/content/values/_index.md"
         label: "Values Page"
         name: "values"
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Image, name: image, widget: image}
-          - label: Values
-            name: values
-            widget: list
+          - {label: "Title", name: "title", widget: "string"}
+          - {label: "Image", name: "image", widget: "image"}
+          - label: "Values"
+            name: "values"
+            widget: "list"
             fields:
-              - {label: Heading, name: heading, widget: string}
-              - {label: Text, name: text, widget: text}
-              - {label: Image, name: imageUrl, widget: image}
+              - {label: "Heading", name: "heading", widget: "string"}
+              - {label: "Text", name: "text", widget: "text"}
+              - {label: "Image", name: "imageUrl", widget: "image"}
 
-      # --- NEW: Supplements Landing Page ---
+      # Supplements Landing Page
       - file: "site/content/supplements/_index.md"
         label: "Supplements Landing Page"
         name: "supplements_home"
@@ -92,7 +92,7 @@ collections:
               {label: "Heading", name: "heading", widget: "string"},
               {label: "Description", name: "description", widget: "text"}]}
 
-  # --- NEW: Supplement Reviews Collection (Dynamic Posts) ---
+  # --- SUPPLEMENT REVIEWS COLLECTION (Dynamic Posts) ---
   - name: "supplements"
     label: "Supplement Reviews"
     folder: "site/content/supplements"
@@ -115,23 +115,23 @@ collections:
     label: "Site Settings"
     files:
       - file: "site/data/footer.json"
-        label: Footer
-        name: footer
+        label: "Footer"
+        name: "footer"
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Blurb, name: blurb, widget: text}
+          - {label: "Title", name: "title", widget: "string"}
+          - {label: "Blurb", name: "blurb", widget: "text"}
       - file: "site/hugo.toml"
-        label: Hugo Config
-        name: config
+        label: "Hugo Config"
+        name: "config"
         editor:
           preview: false
         fields:
-          - {label: Site Title for Browser Tab, name: title, widget: string}
-          - label: Params
-            name: params
-            widget: object
+          - {label: "Site Title for Browser Tab", name: "title", widget: "string"}
+          - label: "Params"
+            name: "params"
+            widget: "object"
             fields:
-              - label: Open Graph Image
-                name: images
-                widget: list
-                field: { label: Image, name: image, widget: image }
+              - label: "Open Graph Image"
+                name: "images"
+                widget: "list"
+                field: { label: "Image", name: "image", widget: "image" }

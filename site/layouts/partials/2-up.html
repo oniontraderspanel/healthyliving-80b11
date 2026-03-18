@@ -4,7 +4,7 @@
     <p class="mb4 mw6">{{ .intro.text }}</p>
 
     <div class="flex-ns mhn2-ns mb3">
-      {{ range .intro.blurbs }}
+      {{ range .features }} 
       <div class="ph2-ns w-50-ns">
         <img src="{{ .image }}" alt="" class="center db mb3" style="width: 240px">
         <p>{{ .text }}</p>
@@ -13,7 +13,6 @@
     </div>
 
     <div class="tc">
-      <!-- Changed link to Supplements -->
       <a href="/supplements/" class="btn raise">Explore Supplements</a>
     </div>
   </div>

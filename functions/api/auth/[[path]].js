@@ -26,11 +26,45 @@ export async function onRequest(context) {
         }),
       });
 
-      const tokenData = await tokenResponse.json();
+      // Get the response text first
+      const responseText = await tokenResponse.text();
+      console.log('📦 Raw token response:', responseText);
+
+      // Try to parse as JSON
+      let tokenData;
+      try {
+        tokenData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('❌ Failed to parse token response as JSON:', responseText);
+        return new Response(`
+          <html>
+            <body style="font-family: sans-serif; padding: 2rem;">
+              <h1>❌ Authentication Error</h1>
+              <p>Failed to get token from GitHub. Response was:</p>
+              <pre style="background: #f0f0f0; padding: 1rem; overflow: auto;">${responseText}</pre>
+              <p>Please check your GitHub OAuth credentials.</p>
+              <button onclick="window.close()">Close Window</button>
+            </body>
+          </html>
+        `, {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      }
 
       if (tokenData.error) {
-        console.error('GitHub token error:', tokenData);
-        return new Response(`GitHub error: ${tokenData.error}`, { status: 400 });
+        console.error('❌ GitHub token error:', tokenData);
+        return new Response(`
+          <html>
+            <body style="font-family: sans-serif; padding: 2rem;">
+              <h1>❌ GitHub Error</h1>
+              <p>Error: ${tokenData.error}</p>
+              <p>Description: ${tokenData.error_description || 'No description'}</p>
+              <button onclick="window.close()">Close Window</button>
+            </body>
+          </html>
+        `, {
+          headers: { 'Content-Type': 'text/html' }
+        });
       }
 
       console.log('✅ Token obtained successfully');
@@ -47,87 +81,101 @@ export async function onRequest(context) {
       console.log('✅ User data obtained:', userData.login);
 
       // Return HTML that sends complete data to the CMS
-      return new Response(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Authentication Successful</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              height: 100vh;
-              margin: 0;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            }
-            .card {
-              background: white;
-              padding: 2rem;
-              border-radius: 12px;
-              box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-              text-align: center;
-              max-width: 400px;
-            }
-            .success-icon {
-              background: #4CAF50;
-              color: white;
-              width: 60px;
-              height: 60px;
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 30px;
-              margin: 0 auto 20px;
-            }
-            h1 { color: #333; margin-bottom: 10px; }
-            p { color: #666; margin: 10px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="success-icon">✓</div>
-            <h1>Authentication Successful!</h1>
-            <p>Welcome, ${userData.login}!</p>
-            <p>You are being redirected back to the CMS...</p>
-          </div>
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Authentication Successful</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 400px;
+    }
+    .success-icon {
+      background: #4CAF50;
+      color: white;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      margin: 0 auto 20px;
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    p { color: #666; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="success-icon">✓</div>
+    <h1>Authentication Successful!</h1>
+    <p>Welcome, ${userData.login}!</p>
+    <p>You are being redirected back to the CMS...</p>
+  </div>
 
-          <script>
-            (function() {
-              console.log('Sending authentication data to CMS...');
+  <script>
+    (function() {
+      console.log('🔑 Auth callback page loaded');
+      console.log('Opener exists:', !!window.opener);
 
-              // Send complete auth data to the CMS
-              if (window.opener) {
-                window.opener.postMessage({
-                  type: 'oauth-callback',
-                  provider: 'github',
-                  token: '${tokenData.access_token}',
-                  user: {
-                    login: '${userData.login}',
-                    name: '${userData.name || userData.login}',
-                    avatar_url: '${userData.avatar_url || ''}'
-                  }
-                }, '*');
+      if (window.opener) {
+        const message = {
+          type: 'oauth-callback',
+          provider: 'github',
+          token: '${tokenData.access_token}',
+          user: {
+            login: '${userData.login}',
+            name: '${userData.name || userData.login}',
+            avatar_url: '${userData.avatar_url || ''}'
+          }
+        };
 
-                // Close this window after a short delay
-                setTimeout(() => window.close(), 2000);
-              } else {
-                console.log('No opener window found');
-                document.body.innerHTML += '<p>No opener window found. You can close this window.</p>';
-              }
-            })();
-          </script>
-        </body>
-        </html>
-      `, {
+        console.log('📤 Sending message to opener:', message);
+        window.opener.postMessage(message, '*');
+        console.log('✅ Message sent, closing window in 2 seconds...');
+        setTimeout(() => window.close(), 2000);
+      } else {
+        console.log('❌ No opener window found');
+        document.body.innerHTML += '<p>No opener window found. You can close this window.</p>';
+      }
+    })();
+  </script>
+</body>
+</html>
+      `;
+
+      return new Response(html, {
         headers: { 'Content-Type': 'text/html' }
       });
 
     } catch (error) {
-      console.error('Token exchange error:', error);
-      return new Response(`Error: ${error.message}`, { status: 500 });
+      console.error('❌ Token exchange error:', error);
+      return new Response(`
+        <html>
+          <body style="font-family: sans-serif; padding: 2rem;">
+            <h1>❌ Error</h1>
+            <p>${error.message}</p>
+            <button onclick="window.close()">Close Window</button>
+          </body>
+        </html>
+      `, {
+        headers: { 'Content-Type': 'text/html' }
+      });
     }
   }
 

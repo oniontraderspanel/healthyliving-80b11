@@ -4,142 +4,108 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.pathname.replace('/api/auth', '');
 
-  console.log('Auth function called', { path, url: url.toString() });
-
-  // Handle different auth endpoints
-  if (path === '/callback') {
-    console.log('Handling callback with code:', url.searchParams.get('code'));
-    return handleCallback(request, env);
-  } else if (path === '/' || path === '') {
-    console.log('Handling auth redirect');
-    return handleAuth(request, env);
-  }
-
-  return new Response('Not found', { status: 404 });
-}
-
-async function handleAuth(request, env) {
-  const url = new URL(request.url);
-  const redirectUri = `${url.origin}/api/auth/callback`;
-
-  console.log('Auth redirect URI:', redirectUri);
-  console.log('Using client ID:', env.GITHUB_CLIENT_ID ? 'Set' : 'MISSING');
-
-  const githubAuthUrl = new URL('https://github.com/login/oauth/authorize');
-  githubAuthUrl.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
-  githubAuthUrl.searchParams.set('redirect_uri', redirectUri);
-  githubAuthUrl.searchParams.set('scope', 'repo user');
-  githubAuthUrl.searchParams.set('state', generateState());
-
-  return Response.redirect(githubAuthUrl.toString(), 302);
-}
-
-async function handleCallback(request, env) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
-
-  console.log('Callback received', {
-    code: code ? 'present' : 'missing',
-    state: state ? 'present' : 'missing'
+  console.log('🔥 Auth function called', {
+    path,
+    fullUrl: url.toString(),
+    hasCode: !!url.searchParams.get('code')
   });
 
-  if (!code) {
-    console.error('No code provided in callback');
-    return new Response('No code provided', { status: 400 });
-  }
+  // Handle callback - do this FIRST and make it super obvious
+  if (path === '/callback') {
+    console.log('🎯 CALLBACK HANDLER TRIGGERED!');
+    console.log('Code:', url.searchParams.get('code'));
+    console.log('State:', url.searchParams.get('state'));
 
-  try {
-    // Exchange code for token
-    console.log('Exchanging code for token...');
-    console.log('Client secret:', env.GITHUB_CLIENT_SECRET ? 'Set' : 'MISSING');
+    // Return a visible response immediately
+    return new Response(`
+      <html>
+        <head>
+          <title>Authentication Test</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              background: #f5f5f5;
+            }
+            .card {
+              background: white;
+              padding: 2rem;
+              border-radius: 8px;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+              max-width: 500px;
+              text-align: center;
+            }
+            .success { color: #2ecc71; font-size: 48px; margin-bottom: 1rem; }
+            .info { background: #f8f9fa; padding: 1rem; border-radius: 4px; margin: 1rem 0; text-align: left; }
+            .info p { margin: 0.5rem 0; }
+            .label { font-weight: bold; color: #555; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="success">✅</div>
+            <h1>Callback Received!</h1>
+            <p>Your auth callback endpoint is working correctly.</p>
 
-    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        client_id: env.GITHUB_CLIENT_ID,
-        client_secret: env.GITHUB_CLIENT_SECRET,
-        code: code,
-      }),
-    });
+            <div class="info">
+              <p><span class="label">Code:</span> ${url.searchParams.get('code') || 'none'}</p>
+              <p><span class="label">State:</span> ${url.searchParams.get('state') || 'none'}</p>
+            </div>
 
-    const tokenData = await tokenResponse.json();
-    console.log('Token response received');
+            <p>This confirms the callback endpoint is reachable.</p>
+            <p><small>You can close this window and return to the CMS.</small></p>
+          </div>
 
-    if (tokenData.error) {
-      console.error('GitHub error:', tokenData.error, tokenData.error_description);
-      return new Response(`GitHub error: ${tokenData.error} - ${tokenData.error_description || ''}`, { status: 400 });
-    }
-
-    if (!tokenData.access_token) {
-      console.error('No access token in response:', tokenData);
-      return new Response('No access token received', { status: 400 });
-    }
-
-    console.log('Successfully obtained access token');
-
-    // Return HTML with token for Decap CMS
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Authenticating...</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: #f5f5f5;
-    }
-    .message {
-      text-align: center;
-      padding: 2rem;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-  </style>
-</head>
-<body>
-  <div class="message">
-    <h2>Authentication Successful!</h2>
-    <p>You can close this window and return to the CMS.</p>
-  </div>
-  <script>
-    (function() {
-      console.log('Sending token to opener window');
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'oauth-callback',
-          provider: 'github',
-          token: '${tokenData.access_token}'
-        }, '*');
-        setTimeout(() => window.close(), 1000);
-      } else {
-        console.log('No opener window found');
-        document.body.innerHTML = '<div class="message"><h2>Success!</h2><p>You can now return to the CMS.</p></div>';
-      }
-    })();
-  </script>
-</body>
-</html>
-    `;
-
-    return new Response(html, {
+          <script>
+            console.log('Callback page loaded');
+            if (window.opener) {
+              console.log('Found opener window, sending message');
+              window.opener.postMessage({
+                type: 'oauth-callback',
+                provider: 'github',
+                token: 'test-token-12345'
+              }, '*');
+              setTimeout(() => window.close(), 2000);
+            } else {
+              console.log('No opener window found');
+            }
+          </script>
+        </body>
+      </html>
+    `, {
       headers: { 'Content-Type': 'text/html' },
     });
-  } catch (error) {
-    console.error('Callback error:', error.message, error.stack);
-    return new Response(`Error: ${error.message}`, { status: 500 });
   }
+
+  // Handle auth redirect
+  if (path === '/' || path === '') {
+    console.log('🔑 Auth handler triggered');
+
+    // Check if environment variables are set
+    if (!env.GITHUB_CLIENT_ID) {
+      console.error('GITHUB_CLIENT_ID not set');
+      return new Response('GitHub Client ID not configured', { status: 500 });
+    }
+
+    const redirectUri = `${url.origin}/api/auth/callback`;
+    console.log('Redirect URI:', redirectUri);
+
+    const githubAuthUrl = new URL('https://github.com/login/oauth/authorize');
+    githubAuthUrl.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
+    githubAuthUrl.searchParams.set('redirect_uri', redirectUri);
+    githubAuthUrl.searchParams.set('scope', 'repo user');
+    githubAuthUrl.searchParams.set('state', generateState());
+
+    console.log('Redirecting to GitHub');
+    return Response.redirect(githubAuthUrl.toString(), 302);
+  }
+
+  console.log('❌ No handler for path:', path);
+  return new Response('Not found', { status: 404 });
 }
 
 function generateState() {

@@ -35,7 +35,18 @@ export async function onRequest(context) {
 
       console.log('✅ Token obtained successfully');
 
-      // Return HTML that sends the token to the CMS
+      // Get user data from GitHub
+      const userResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          'Authorization': `token ${tokenData.access_token}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      const userData = await userResponse.json();
+      console.log('✅ User data obtained:', userData.login);
+
+      // Return HTML that sends complete data to the CMS
       return new Response(`
         <!DOCTYPE html>
         <html>
@@ -79,19 +90,25 @@ export async function onRequest(context) {
           <div class="card">
             <div class="success-icon">✓</div>
             <h1>Authentication Successful!</h1>
+            <p>Welcome, ${userData.login}!</p>
             <p>You are being redirected back to the CMS...</p>
           </div>
 
           <script>
             (function() {
-              console.log('Sending token to CMS...');
+              console.log('Sending authentication data to CMS...');
 
-              // Send the token to the CMS
+              // Send complete auth data to the CMS
               if (window.opener) {
                 window.opener.postMessage({
                   type: 'oauth-callback',
                   provider: 'github',
-                  token: '${tokenData.access_token}'
+                  token: '${tokenData.access_token}',
+                  user: {
+                    login: '${userData.login}',
+                    name: '${userData.name || userData.login}',
+                    avatar_url: '${userData.avatar_url || ''}'
+                  }
                 }, '*');
 
                 // Close this window after a short delay
@@ -117,7 +134,6 @@ export async function onRequest(context) {
   // Handle auth redirect (no code parameter)
   console.log('🔑 Auth redirect triggered');
 
-  // Check if environment variables are set
   if (!env.GITHUB_CLIENT_ID) {
     return new Response('GitHub Client ID not configured', { status: 500 });
   }

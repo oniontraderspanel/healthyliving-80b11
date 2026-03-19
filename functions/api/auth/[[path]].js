@@ -3,16 +3,22 @@ export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
 
-  console.log('🚀 Auth function called for path:', url.pathname);
-
-  // Check if this is a callback (has code parameter)
+  // Handle callback (when GitHub redirects back with code)
   if (url.searchParams.has('code')) {
-    console.log('✅ Callback detected, exchanging code for token');
-
     const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+
+    // CRITICAL: This must match the redirect_uri used in the auth request
+    const redirectUri = `${url.origin}/api/auth/callback`;
+
+    console.log('=== TOKEN EXCHANGE ===');
+    console.log('Code:', code);
+    console.log('Redirect URI:', redirectUri);
+    console.log('Client ID present:', !!env.GITHUB_CLIENT_ID);
+    console.log('Client Secret present:', !!env.GITHUB_CLIENT_SECRET);
 
     try {
-      // Exchange the code for an access token
+      // Exchange code for token - INCLUDING redirect_uri
       const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
         method: 'POST',
         headers: {
@@ -23,53 +29,86 @@ export async function onRequest(context) {
           client_id: env.GITHUB_CLIENT_ID,
           client_secret: env.GITHUB_CLIENT_SECRET,
           code: code,
+          redirect_uri: redirectUri // ← THIS WAS MISSING
         }),
       });
 
-      // Get the response text first
       const responseText = await tokenResponse.text();
-      console.log('📦 Raw token response:', responseText);
+      console.log('Response status:', tokenResponse.status);
+      console.log('Response text:', responseText);
 
-      // Try to parse as JSON
+      // Try to parse JSON
       let tokenData;
       try {
         tokenData = JSON.parse(responseText);
       } catch (e) {
-        console.error('❌ Failed to parse token response as JSON:', responseText);
+        // Show the raw response for debugging
         return new Response(`
+          <!DOCTYPE html>
           <html>
-            <body style="font-family: sans-serif; padding: 2rem;">
-              <h1>❌ Authentication Error</h1>
-              <p>Failed to get token from GitHub. Response was:</p>
-              <pre style="background: #f0f0f0; padding: 1rem; overflow: auto;">${responseText}</pre>
-              <p>Please check your GitHub OAuth credentials.</p>
-              <button onclick="window.close()">Close Window</button>
-            </body>
+          <head>
+            <title>Debug Response</title>
+            <style>
+              body { font-family: monospace; padding: 2rem; background: #f5f5f5; }
+              .container { max-width: 800px; margin: 0 auto; }
+              .error { background: #fee; color: #c00; padding: 1rem; border-radius: 4px; }
+              pre { background: #fff; padding: 1rem; border-radius: 4px; overflow: auto; }
+              .info { background: #e7f3ff; padding: 1rem; border-radius: 4px; margin: 1rem 0; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🔍 GitHub Response Debug</h1>
+
+              <div class="info">
+                <h3>Request Sent to GitHub:</h3>
+                <pre>${JSON.stringify({
+                  client_id: env.GITHUB_CLIENT_ID ? '✓ Set (hidden)' : '✗ MISSING',
+                  client_secret: env.GITHUB_CLIENT_SECRET ? '✓ Set (hidden)' : '✗ MISSING',
+                  code: code.substring(0, 5) + '...',
+                  redirect_uri: redirectUri
+                }, null, 2)}</pre>
+              </div>
+
+              <div class="error">
+                <h3>❌ Failed to parse GitHub Response as JSON</h3>
+                <p><strong>Status Code:</strong> ${tokenResponse.status}</p>
+              </div>
+
+              <h3>Raw Response Text:</h3>
+              <pre>${responseText}</pre>
+
+              <h3>Response Headers:</h3>
+              <pre>${JSON.stringify(Object.fromEntries(tokenResponse.headers), null, 2)}</pre>
+
+              <button onclick="window.close()" style="padding: 10px 20px; margin-top: 20px;">Close Window</button>
+            </div>
+          </body>
           </html>
         `, {
           headers: { 'Content-Type': 'text/html' }
         });
       }
 
+      // Check for GitHub error
       if (tokenData.error) {
-        console.error('❌ GitHub token error:', tokenData);
         return new Response(`
+          <!DOCTYPE html>
           <html>
-            <body style="font-family: sans-serif; padding: 2rem;">
-              <h1>❌ GitHub Error</h1>
-              <p>Error: ${tokenData.error}</p>
-              <p>Description: ${tokenData.error_description || 'No description'}</p>
-              <button onclick="window.close()">Close Window</button>
-            </body>
+          <head><title>GitHub Error</title></head>
+          <body style="font-family: sans-serif; padding: 2rem;">
+            <h1>❌ GitHub Error</h1>
+            <p><strong>Error:</strong> ${tokenData.error}</p>
+            <p><strong>Description:</strong> ${tokenData.error_description || 'No description'}</p>
+            <button onclick="window.close()">Close Window</button>
+          </body>
           </html>
         `, {
           headers: { 'Content-Type': 'text/html' }
         });
       }
 
-      console.log('✅ Token obtained successfully');
-
-      // Get user data from GitHub
+      // Success! Get user data
       const userResponse = await fetch('https://api.github.com/user', {
         headers: {
           'Authorization': `token ${tokenData.access_token}`,
@@ -80,102 +119,89 @@ export async function onRequest(context) {
       const userData = await userResponse.json();
       console.log('✅ User data obtained:', userData.login);
 
-      // Return HTML that sends complete data to the CMS
-      const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Authentication Successful</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .card {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      text-align: center;
-      max-width: 400px;
-    }
-    .success-icon {
-      background: #4CAF50;
-      color: white;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 30px;
-      margin: 0 auto 20px;
-    }
-    h1 { color: #333; margin-bottom: 10px; }
-    p { color: #666; margin: 10px 0; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="success-icon">✓</div>
-    <h1>Authentication Successful!</h1>
-    <p>Welcome, ${userData.login}!</p>
-    <p>You are being redirected back to the CMS...</p>
-  </div>
-
-  <script>
-    (function() {
-      console.log('🔑 Auth callback page loaded');
-      console.log('Opener exists:', !!window.opener);
-
-      if (window.opener) {
-        const message = {
-          type: 'oauth-callback',
-          provider: 'github',
-          token: '${tokenData.access_token}',
-          user: {
-            login: '${userData.login}',
-            name: '${userData.name || userData.login}',
-            avatar_url: '${userData.avatar_url || ''}'
-          }
-        };
-
-        console.log('📤 Sending message to opener:', message);
-        window.opener.postMessage(message, '*');
-        console.log('✅ Message sent, closing window in 2 seconds...');
-        setTimeout(() => window.close(), 2000);
-      } else {
-        console.log('❌ No opener window found');
-        document.body.innerHTML += '<p>No opener window found. You can close this window.</p>';
-      }
-    })();
-  </script>
-</body>
-</html>
-      `;
-
-      return new Response(html, {
-        headers: { 'Content-Type': 'text/html' }
-      });
-
-    } catch (error) {
-      console.error('❌ Token exchange error:', error);
+      // Send token back to CMS
       return new Response(`
+        <!DOCTYPE html>
         <html>
-          <body style="font-family: sans-serif; padding: 2rem;">
-            <h1>❌ Error</h1>
-            <p>${error.message}</p>
-            <button onclick="window.close()">Close Window</button>
-          </body>
+        <head>
+          <title>Authentication Successful</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .card {
+              background: white;
+              padding: 2rem;
+              border-radius: 12px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+              text-align: center;
+              max-width: 400px;
+            }
+            .success-icon {
+              background: #4CAF50;
+              color: white;
+              width: 60px;
+              height: 60px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 30px;
+              margin: 0 auto 20px;
+            }
+            h1 { color: #333; margin-bottom: 10px; }
+            p { color: #666; margin: 10px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="success-icon">✓</div>
+            <h1>Authentication Successful!</h1>
+            <p>Welcome, ${userData.login}!</p>
+            <p>You are being redirected back to the CMS...</p>
+          </div>
+
+          <script>
+            (function() {
+              console.log('🔑 Auth callback page loaded');
+
+              if (window.opener) {
+                const message = {
+                  type: 'oauth-callback',
+                  provider: 'github',
+                  token: '${tokenData.access_token}',
+                  user: {
+                    login: '${userData.login}',
+                    name: '${userData.name || userData.login}',
+                    avatar_url: '${userData.avatar_url || ''}'
+                  }
+                };
+
+                console.log('📤 Sending message to opener');
+                window.opener.postMessage(message, '*');
+
+                // Close after a short delay
+                setTimeout(() => window.close(), 2000);
+              } else {
+                console.log('❌ No opener window found');
+              }
+            })();
+          </script>
+        </body>
         </html>
       `, {
         headers: { 'Content-Type': 'text/html' }
       });
+
+    } catch (error) {
+      console.error('❌ Error:', error);
+      return new Response(`Error: ${error.message}`, { status: 500 });
     }
   }
 
@@ -187,6 +213,8 @@ export async function onRequest(context) {
   }
 
   const redirectUri = `${url.origin}/api/auth/callback`;
+  console.log('Redirect URI:', redirectUri);
+
   const githubAuthUrl = new URL('https://github.com/login/oauth/authorize');
   githubAuthUrl.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
   githubAuthUrl.searchParams.set('redirect_uri', redirectUri);
